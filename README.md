@@ -41,4 +41,3 @@ VITE_USE_MOCK=0
 - `npm run dev` — desarrollo
 - `npm run build` — build producción
 - `npm run preview` — sirve la build local
-
