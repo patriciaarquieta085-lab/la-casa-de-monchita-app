@@ -1,0 +1,1 @@
+{\n  "compilerOptions": {\n    "composite": true,\n    "skipLibCheck": true,\n    "module": "ESNext",\n    "moduleResolution": "Bundler",\n    "allowSyntheticDefaultImports": true\n  },\n  "include": [\n    "vite.config.ts"\n  ]\n}
