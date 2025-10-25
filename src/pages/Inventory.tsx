@@ -61,11 +61,14 @@ export default function Inventory() {
               }}
             >
               <option value="">Selecciona insumo</option>
-              {inventory.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name} · Stock actual {item.stock} {item.unit}
-                </option>
-              ))}
+              {inventory.map((item) => {
+                const available = Math.max(item.stock - item.reserved, 0)
+                return (
+                  <option key={item.id} value={item.id}>
+                    {item.name} · Disponible {available} {item.unit}
+                  </option>
+                )
+              })}
             </select>
             {form.formState.errors.itemId && (
               <p className="text-xs text-rose-400">
@@ -105,7 +108,8 @@ export default function Inventory() {
             {(() => {
               const item = inventory.find((inv) => inv.id === selectedItem)
               if (!item) return null
-              const level = item.stock <= item.minStock ? "Bajo" : "Óptimo"
+              const available = Math.max(item.stock - item.reserved, 0)
+              const level = available <= item.minStock ? "Bajo" : "Óptimo"
               return (
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>
@@ -114,7 +118,13 @@ export default function Inventory() {
                   </div>
                   <div className="text-right">
                     <p>
-                      Stock: <span className="font-semibold">{item.stock}</span> {item.unit}
+                      Stock físico: <span className="font-semibold">{item.stock}</span> {item.unit}
+                    </p>
+                    <p>
+                      Reservado: <span className="font-semibold">{item.reserved}</span> {item.unit}
+                    </p>
+                    <p>
+                      Disponible: <span className="font-semibold">{available}</span> {item.unit}
                     </p>
                     <p className="text-xs text-slate-400">Mínimo recomendado: {item.minStock} {item.unit}</p>
                     <p
@@ -146,7 +156,9 @@ export default function Inventory() {
             <thead className="bg-slate-900/70 text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-6 py-4 text-left">Insumo</th>
-                <th className="px-6 py-4 text-left">Stock</th>
+                <th className="px-6 py-4 text-left">Stock físico</th>
+                <th className="px-6 py-4 text-left">Reservado</th>
+                <th className="px-6 py-4 text-left">Disponible</th>
                 <th className="px-6 py-4 text-left">Mínimo</th>
                 <th className="px-6 py-4 text-left">Proveedor</th>
                 <th className="px-6 py-4 text-left">Acciones</th>
@@ -158,6 +170,12 @@ export default function Inventory() {
                   <td className="px-6 py-4 text-slate-200">{item.name}</td>
                   <td className="px-6 py-4 text-slate-300">
                     {item.stock} {item.unit}
+                  </td>
+                  <td className="px-6 py-4 text-slate-300">
+                    {item.reserved} {item.unit}
+                  </td>
+                  <td className="px-6 py-4 text-slate-300">
+                    {Math.max(item.stock - item.reserved, 0)} {item.unit}
                   </td>
                   <td className="px-6 py-4 text-slate-300">
                     {item.minStock} {item.unit}

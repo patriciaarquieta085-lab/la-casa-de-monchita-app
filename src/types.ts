@@ -19,6 +19,7 @@ export type OrderItem = {
   name: string
   quantity: number
   unitPrice: number
+  inventoryId?: string
 }
 
 export type Order = {
@@ -34,7 +35,12 @@ export type Order = {
   updatedAt: string
 }
 
-export type NotificationType = "pedido" | "inventario" | "pago" | "seguridad" | "entrenamiento"
+export type NotificationType =
+  | "pedido"
+  | "inventario"
+  | "pago"
+  | "seguridad"
+  | "entrenamiento"
 
 export type Notification = {
   id: string
@@ -49,6 +55,7 @@ export type InventoryItem = {
   id: string
   name: string
   stock: number
+  reserved: number
   minStock: number
   unit: string
   supplier: string
@@ -73,6 +80,12 @@ export type PaymentMethod = {
   fees: string
 }
 
+export type PaymentTransactionStatus =
+  | "pendiente"
+  | "aprobado"
+  | "rechazado"
+  | "reintentando"
+
 export type PaymentRecord = {
   id: string
   orderId: string
@@ -80,6 +93,7 @@ export type PaymentRecord = {
   amount: number
   status: "pendiente" | "aprobado" | "rechazado"
   processedAt: string
+  reference?: string
 }
 
 export type TrainingSession = {
@@ -110,4 +124,40 @@ export type OrderFormValues = {
   }[]
   paymentMethod: string
   notes?: string
+}
+
+export type PaymentGatewayProvider = "stripe" | "mercadopago"
+
+export type PaymentSandboxConfig = {
+  provider: PaymentGatewayProvider
+  publicKey: string
+  sandboxUrl: string
+  currency: string
+  retries: number
+  retryDelayMs: number
+}
+
+export type CheckoutPayload = {
+  orderId: string
+  amount: number
+  currency: string
+  items: Array<{
+    name: string
+    quantity: number
+    unitPrice: number
+  }>
+  customerName: string
+  paymentMethod: string
+}
+
+export type TransactionLogEntry = {
+  id: string
+  orderId: string
+  provider: PaymentGatewayProvider
+  amount: number
+  attempts: number
+  status: PaymentTransactionStatus
+  error?: string
+  createdAt: string
+  reference?: string
 }

@@ -17,8 +17,11 @@ export default function Payments() {
     orders,
     paymentMethods,
     paymentHistory,
+    transactionLog,
+    paymentConfig,
     togglePaymentMethod,
     recordPayment,
+    switchPaymentProvider,
   } = useData()
 
   const form = useForm<PaymentValues>({
@@ -29,6 +32,20 @@ export default function Payments() {
       amount: orders[0]?.total ?? 0,
     },
   })
+
+  const providers = [
+    {
+      id: "stripe" as const,
+      label: "Stripe Sandbox",
+      description:
+        "Pruebas con tarjetas internacionales y validación PCI DSS automatizada.",
+    },
+    {
+      id: "mercadopago" as const,
+      label: "Mercado Pago Sandbox",
+      description: "Entorno regionalizado con soporte para medios locales.",
+    },
+  ]
 
   function onSubmit(values: PaymentValues) {
     recordPayment(values.orderId, values.methodId, values.amount)
@@ -45,6 +62,95 @@ export default function Payments() {
           HU5 · Consolidación de métodos y trazabilidad de transacciones.
         </p>
       </header>
+
+      <section className="grid gap-6 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 shadow-lg shadow-slate-950/30">
+        <h2 className="text-lg font-semibold text-slate-100">
+          Sandbox de pasarela de pago
+        </h2>
+        <div className="grid gap-4 md:grid-cols-[1.4fr,1fr]">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-300">
+              Selecciona el proveedor de pruebas para validar cobros sin afectar la producción. Las reglas de reintento se aplican automáticamente a cada checkout.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {providers.map((provider) => (
+                <button
+                  key={provider.id}
+                  type="button"
+                  onClick={() => switchPaymentProvider(provider.id)}
+                  className={`rounded-2xl border px-4 py-2 text-xs font-semibold transition ${
+                    paymentConfig.provider === provider.id
+                      ? "border-emerald-300 bg-emerald-400 text-emerald-950"
+                      : "border-slate-700 bg-slate-950/60 text-slate-300 hover:border-emerald-300 hover:text-emerald-200"
+                  }`}
+                >
+                  {provider.label}
+                </button>
+              ))}
+            </div>
+            <ul className="space-y-2 text-sm text-slate-300">
+              {providers.map((provider) => (
+                <li
+                  key={`${provider.id}-description`}
+                  className={`rounded-xl border px-4 py-3 ${
+                    paymentConfig.provider === provider.id
+                      ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-100"
+                      : "border-slate-800 bg-slate-950/50"
+                  }`}
+                >
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    {provider.label}
+                  </p>
+                  <p>{provider.description}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-300">
+            <h3 className="mb-3 text-sm font-semibold text-slate-100">
+              Parámetros activos
+            </h3>
+            <dl className="grid gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Clave pública
+                </dt>
+                <dd className="font-mono text-xs text-slate-100 break-all">
+                  {paymentConfig.publicKey}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Endpoint
+                </dt>
+                <dd className="font-mono text-xs text-slate-100 break-all">
+                  {paymentConfig.sandboxUrl}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Moneda
+                </dt>
+                <dd className="text-slate-100">{paymentConfig.currency}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Reintentos
+                </dt>
+                <dd className="text-slate-100">{paymentConfig.retries}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Espera entre intentos
+                </dt>
+                <dd className="text-slate-100">
+                  {(paymentConfig.retryDelayMs / 1000).toFixed(1)} s
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-6 rounded-3xl border border-slate-800 bg-slate-900/50 p-6 shadow-lg shadow-slate-950/30">
         <h2 className="text-lg font-semibold text-slate-100">
@@ -212,6 +318,70 @@ export default function Payments() {
             )
           })}
         </ul>
+      </section>
+
+      <section className="grid gap-4">
+        <header className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold text-slate-100">
+            Registro de transacciones sandbox
+          </h2>
+          <p className="text-xs text-slate-500">
+            Monitoreo de reintentos, errores y referencias devueltas por la pasarela de pruebas.
+          </p>
+        </header>
+
+        <div className="overflow-x-auto rounded-3xl border border-slate-800 bg-slate-950/40">
+          {transactionLog.length === 0 ? (
+            <p className="p-6 text-sm text-slate-400">
+              Aún no se registran transacciones simuladas. Inicia un checkout desde la sección de pedidos para poblar la bitácora.
+            </p>
+          ) : (
+            <table className="min-w-full divide-y divide-slate-800 text-sm">
+              <thead className="bg-slate-900/70 text-xs uppercase tracking-wide text-slate-400">
+                <tr>
+                  <th className="px-4 py-3 text-left">Fecha</th>
+                  <th className="px-4 py-3 text-left">Pedido</th>
+                  <th className="px-4 py-3 text-left">Proveedor</th>
+                  <th className="px-4 py-3 text-left">Monto</th>
+                  <th className="px-4 py-3 text-left">Intentos</th>
+                  <th className="px-4 py-3 text-left">Estado</th>
+                  <th className="px-4 py-3 text-left">Referencia</th>
+                  <th className="px-4 py-3 text-left">Detalle</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {transactionLog.map((entry) => {
+                  const statusClass =
+                    entry.status === "aprobado"
+                      ? "text-emerald-300"
+                      : entry.status === "rechazado"
+                      ? "text-rose-300"
+                      : "text-amber-200"
+                  return (
+                    <tr key={entry.id} className="hover:bg-slate-900/60">
+                      <td className="px-4 py-3 text-slate-300">
+                        {new Date(entry.createdAt).toLocaleString("es-VE")}
+                      </td>
+                      <td className="px-4 py-3 text-slate-200">{entry.orderId}</td>
+                      <td className="px-4 py-3 text-slate-300">{entry.provider}</td>
+                      <td className="px-4 py-3 text-slate-200">${entry.amount.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-slate-300">{entry.attempts}</td>
+                      <td className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide ${statusClass}`}>
+                        {entry.status}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-slate-200">
+                        {entry.reference ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-400">
+                        {entry.error ?? "Procesado correctamente"}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
       </section>
     </section>
   )
